@@ -8,12 +8,42 @@ function doRequest(proxy, url, timeout = 5000){
             ignoreDefaultArgs: true,
         }).then(async (browser) => {
             let page = await browser.newPage()
-            await useProxy(page, proxy);
+            let resolved = false
+
+            if(proxy !== "direct://"){
+                try {
+                    try {
+                        new URL(proxy)
+
+                        useProxy(page, proxy).catch(() => {
+                            resolved = true
+                            resolve(false)
+                        })
+                    } catch (err){
+                        resolved = true
+                        resolve(false)
+                    }
+                } catch (err) {
+                    resolved = true
+                    resolve(false)
+                }
+            }
 
             page.goto(url, {timeout}).then(() => {
-                browser.close().catch(() => resolve(false))
-                resolve(true)
-            }).catch(() => resolve(false))
+                if(!resolved){
+                    resolve(true)
+                }
+
+                browser.close().catch(() => {
+                    if(!resolved){
+                        resolve(false)
+                    }
+                })
+            }).catch(() => {
+                if(!resolved){
+                    resolve(false)
+                }
+            })
         }).catch(() => resolve(false))
     })
 }
